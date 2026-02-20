@@ -16,11 +16,9 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          prompt: |
-            Review this PR for:
-            1. TypeScript type safety and strict mode compliance
-            2. Correct use of Next.js static export patterns (no server-side code)
-            3. Proper error handling and edge cases
-            4. Code style consistency with Biome config
-            5. Test coverage for new functionality
-            Provide specific, actionable feedback.
+          track_progress: true
+          show_full_output: true
+          prompt: "/review-pr REPO: ${{ github.repository }} PR_NUMBER: ${{ github.event.pull_request.number }}"
+
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
