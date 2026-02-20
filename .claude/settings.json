@@ -28,9 +28,9 @@
     "ENABLE_LSP_TOOL": "1"
   },
   "plansDirectory": "plans",
-  "enabledPlugins": [
-    "superpowers@superpowers-marketplace",
-    "typescript-lsp@claude-plugins-official",
-    "chrome-devtools-mcp@chrome-devtools-plugins"
-  ]
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "chrome-devtools-mcp@chrome-devtools-plugins": true
+  }
 }
