@@ -9,21 +9,7 @@ import type {
 import { createId } from "@/types/domain";
 import type Anthropic from "@anthropic-ai/sdk";
 import { questionGenerationPrompt } from "./prompts";
-
-/**
- * Try to parse a JSON response from the AI, extracting from markdown code blocks if needed.
- */
-function parseJsonResponse(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (codeBlockMatch) {
-      return JSON.parse(codeBlockMatch[1].trim());
-    }
-    throw new Error(`Failed to parse JSON response: ${text.slice(0, 200)}`);
-  }
-}
+import { parseJsonResponse } from "./utils";
 
 /**
  * Validate and normalize generated questions from AI.

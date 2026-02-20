@@ -1,7 +1,7 @@
 "use client";
 
 import { db } from "@/lib/db/schema";
-import type { Document, DocumentId } from "@/types/domain";
+import type { Document, DocumentId, TopicId } from "@/types/domain";
 import { useLiveQuery } from "dexie-react-hooks";
 
 /**
@@ -43,11 +43,55 @@ export async function updateDocument(
 export async function deleteDocument(id: DocumentId): Promise<void> {
   await db.transaction(
     "rw",
-    [db.documents, db.textChunks, db.claims],
+    [db.documents, db.textChunks, db.claims, db.topics, db.topicRelationships],
     async () => {
-      // Get claim IDs to clean up topic counts
+      // Get claims to collect topic references
       const claims = await db.claims.where("documentId").equals(id).toArray();
-      const claimIds = claims.map((c) => c.id);
+
+      // Collect all unique topicIds and count how many claims reference each topic
+      const topicClaimCounts = new Map<TopicId, number>();
+      for (const claim of claims) {
+        for (const topicId of claim.topicIds) {
+          topicClaimCounts.set(
+            topicId,
+            (topicClaimCounts.get(topicId) ?? 0) + 1,
+          );
+        }
+      }
+
+      // Update topic counts and collect orphaned topics
+      const orphanedTopicIds: TopicId[] = [];
+      for (const [topicId, count] of topicClaimCounts) {
+        const topic = await db.topics.get(topicId);
+        if (!topic) continue;
+
+        const newClaimCount = topic.claimCount - count;
+        if (newClaimCount <= 0) {
+          orphanedTopicIds.push(topicId);
+        } else {
+          await db.topics.update(topicId, {
+            claimCount: newClaimCount,
+            documentCount: Math.max(0, topic.documentCount - 1),
+          });
+        }
+      }
+
+      // Delete orphaned topics
+      if (orphanedTopicIds.length > 0) {
+        await db.topics.bulkDelete(orphanedTopicIds);
+
+        // Delete topic relationships referencing orphaned topics
+        const orphanedSet = new Set(orphanedTopicIds);
+        const allRelationships = await db.topicRelationships.toArray();
+        const relationshipIdsToDelete = allRelationships
+          .filter(
+            (r) => orphanedSet.has(r.sourceId) || orphanedSet.has(r.targetId),
+          )
+          .map((r) => r.id);
+        if (relationshipIdsToDelete.length > 0) {
+          await db.topicRelationships.bulkDelete(relationshipIdsToDelete);
+        }
+      }
 
       // Delete claims
       await db.claims.where("documentId").equals(id).delete();

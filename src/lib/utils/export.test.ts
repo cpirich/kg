@@ -58,6 +58,24 @@ describe("exportAllData", () => {
     expect(data.documents[0].name).toBe("test.txt");
     expect(data.documents[0].hash).toBe("abc123");
   });
+
+  it("redacts API key from appSettings in export", async () => {
+    const settings: AppSettings = {
+      id: "settings",
+      apiKey: "sk-secret-key",
+      model: "claude-sonnet-4-20250514",
+      chunkSize: 1500,
+      chunkOverlap: 200,
+    };
+    await db.appSettings.put(settings);
+
+    const json = await exportAllData();
+    const data = JSON.parse(json);
+
+    expect(data.appSettings).toHaveLength(1);
+    expect(data.appSettings[0].apiKey).toBeUndefined();
+    expect(data.appSettings[0].model).toBe("claude-sonnet-4-20250514");
+  });
 });
 
 describe("importAllData", () => {
@@ -141,6 +159,27 @@ describe("importAllData", () => {
   it("throws error on invalid JSON", async () => {
     await expect(importAllData("not valid json{{{")).rejects.toThrow();
   });
+
+  it("throws error when data is not an object", async () => {
+    await expect(importAllData('"just a string"')).rejects.toThrow(
+      "expected a JSON object",
+    );
+    await expect(importAllData("[1, 2, 3]")).rejects.toThrow(
+      "expected a JSON object",
+    );
+  });
+
+  it("throws error when no expected tables are present", async () => {
+    await expect(
+      importAllData(JSON.stringify({ foo: [], bar: [] })),
+    ).rejects.toThrow("expected at least one of the following tables");
+  });
+
+  it("throws error when a table value is not an array", async () => {
+    await expect(
+      importAllData(JSON.stringify({ documents: "not an array" })),
+    ).rejects.toThrow('table "documents" must be an array');
+  });
 });
 
 describe("round-trip export/import", () => {
@@ -216,7 +255,9 @@ describe("round-trip export/import", () => {
     expect(claims[0].text).toBe("A test claim.");
 
     const storedSettings = await db.appSettings.get("settings");
-    expect(storedSettings?.apiKey).toBe("test-key");
+    // API key is intentionally redacted during export to prevent leakage
+    expect(storedSettings?.apiKey).toBeUndefined();
+    expect(storedSettings?.model).toBe("claude-sonnet-4-20250514");
   });
 });
 

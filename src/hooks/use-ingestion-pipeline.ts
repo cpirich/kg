@@ -12,6 +12,7 @@ import type {
   DocumentStatus,
   Topic,
   TopicId,
+  TopicRelationship,
 } from "@/types/domain";
 import { createId } from "@/types/domain";
 import { useCallback, useRef, useState } from "react";
@@ -78,10 +79,15 @@ async function setDocumentStatus(
 /**
  * Find or create a topic by its normalized label.
  * Returns the topic ID.
+ *
+ * @param seenDocIds - tracks which documentIds have already been counted for
+ *   each topic within a single ingestSingleFile call so documentCount is only
+ *   incremented once per document.
  */
 async function upsertTopic(
   rawLabel: string,
   documentId: DocumentId,
+  seenDocIds: Map<TopicId, Set<DocumentId>>,
 ): Promise<TopicId> {
   const normalized = normalizeLabel(rawLabel);
 
@@ -91,10 +97,22 @@ async function upsertTopic(
     .first();
 
   if (existing) {
-    // Increment claim count; check if this is a new document for this topic
+    const seen = seenDocIds.get(existing.id);
+    const isNewDoc = !seen || !seen.has(documentId);
+
     await db.topics.update(existing.id, {
       claimCount: existing.claimCount + 1,
+      ...(isNewDoc ? { documentCount: existing.documentCount + 1 } : {}),
     });
+
+    if (isNewDoc) {
+      if (!seen) {
+        seenDocIds.set(existing.id, new Set([documentId]));
+      } else {
+        seen.add(documentId);
+      }
+    }
+
     return existing.id;
   }
 
@@ -107,7 +125,91 @@ async function upsertTopic(
     documentCount: 1,
   };
   await db.topics.put(topic);
+  seenDocIds.set(topicId, new Set([documentId]));
   return topicId;
+}
+
+/**
+ * Create or update TopicRelationship records for topics that co-occur
+ * across claims in the same document.
+ */
+async function createTopicRelationships(documentId: DocumentId): Promise<void> {
+  // Gather all claims for this document
+  const claims = await db.claims
+    .where("documentId")
+    .equals(documentId)
+    .toArray();
+
+  // Collect all unique topic IDs across all claims in this document
+  const allTopicIds = new Set<TopicId>();
+  for (const claim of claims) {
+    for (const tid of claim.topicIds) {
+      allTopicIds.add(tid);
+    }
+  }
+
+  // Count co-occurrences: two topics co-occur when they appear in the same
+  // claim, or across different claims in the same document.
+  // We pair every topic from every claim with every other topic from every
+  // claim, but use a canonical ordering to avoid duplicates.
+  const pairWeights = new Map<string, number>();
+
+  // For each pair of claims (including a claim paired with itself),
+  // pair their topics
+  for (const claim of claims) {
+    // Within the same claim, pair all topics with each other
+    const topics = claim.topicIds;
+    for (let i = 0; i < topics.length; i++) {
+      for (let j = i + 1; j < topics.length; j++) {
+        const [a, b] =
+          topics[i] < topics[j]
+            ? [topics[i], topics[j]]
+            : [topics[j], topics[i]];
+        const key = `${a}::${b}`;
+        pairWeights.set(key, (pairWeights.get(key) ?? 0) + 1);
+      }
+    }
+  }
+
+  // Also pair topics across different claims in the same document
+  for (let i = 0; i < claims.length; i++) {
+    for (let j = i + 1; j < claims.length; j++) {
+      for (const tA of claims[i].topicIds) {
+        for (const tB of claims[j].topicIds) {
+          if (tA === tB) continue;
+          const [a, b] = tA < tB ? [tA, tB] : [tB, tA];
+          const key = `${a}::${b}`;
+          pairWeights.set(key, (pairWeights.get(key) ?? 0) + 1);
+        }
+      }
+    }
+  }
+
+  // Upsert each relationship
+  for (const [key, weight] of pairWeights) {
+    const [sourceId, targetId] = key.split("::") as [TopicId, TopicId];
+
+    const existing = await db.topicRelationships
+      .where("sourceId")
+      .equals(sourceId)
+      .filter((r) => r.targetId === targetId && r.type === "related")
+      .first();
+
+    if (existing) {
+      await db.topicRelationships.update(existing.id, {
+        weight: existing.weight + weight,
+      });
+    } else {
+      const rel: TopicRelationship = {
+        id: createId<string>("rel"),
+        sourceId,
+        targetId,
+        type: "related",
+        weight,
+      };
+      await db.topicRelationships.put(rel);
+    }
+  }
 }
 
 /**
@@ -135,6 +237,10 @@ export function useIngestionPipeline(): UseIngestionPipelineResult {
       const fileType: "pdf" | "text" = isText ? "text" : "pdf";
       const documentId = createId<DocumentId>("doc");
 
+      // Track which documents each topic has already counted so we only
+      // increment documentCount once per topic per ingestion run.
+      const seenDocIds = new Map<TopicId, Set<DocumentId>>();
+
       updateProgress(index, {
         documentId,
         fileName: file.name,
@@ -143,7 +249,7 @@ export function useIngestionPipeline(): UseIngestionPipelineResult {
       });
 
       try {
-        // Step 1: Hash for dedup
+        // Step 1: Hash for dedup — read file text once and reuse for text files
         const fileContent = await file.text();
         const hash = await hashContent(fileContent);
 
@@ -184,7 +290,8 @@ export function useIngestionPipeline(): UseIngestionPipelineResult {
         if (fileType === "pdf") {
           text = await extractTextFromPdf(file);
         } else {
-          text = await file.text();
+          // Reuse the content already read during hashing
+          text = fileContent;
         }
 
         if (!text.trim()) {
@@ -230,7 +337,11 @@ export function useIngestionPipeline(): UseIngestionPipelineResult {
             for (const extracted of result.claims) {
               const topicIds: TopicId[] = [];
               for (const rawTopic of extracted.topics) {
-                const topicId = await upsertTopic(rawTopic, documentId);
+                const topicId = await upsertTopic(
+                  rawTopic,
+                  documentId,
+                  seenDocIds,
+                );
                 topicIds.push(topicId);
               }
 
@@ -258,6 +369,9 @@ export function useIngestionPipeline(): UseIngestionPipelineResult {
         });
 
         await Promise.all(chunkPromises);
+
+        // Step 6b: Build topic relationships from co-occurrence
+        await createTopicRelationships(documentId);
 
         // Step 7: Mark complete
         await setDocumentStatus(documentId, "complete", 100);

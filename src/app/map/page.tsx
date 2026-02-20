@@ -1,9 +1,18 @@
 "use client";
 
-import { KnowledgeGraph } from "@/components/map/knowledge-graph";
+import { useState } from "react";
+
+import {
+  KnowledgeGraph,
+  type SelectedNodeData,
+} from "@/components/map/knowledge-graph";
 import { NodeDetail } from "@/components/map/node-detail";
 
 export default function MapPage() {
+  const [selectedNode, setSelectedNode] = useState<SelectedNodeData | null>(
+    null,
+  );
+
   return (
     <div className="space-y-6">
       <div>
@@ -15,9 +24,9 @@ export default function MapPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <div className="min-h-[500px]">
-          <KnowledgeGraph />
+          <KnowledgeGraph onSelectNode={setSelectedNode} />
         </div>
-        <NodeDetail />
+        <NodeDetail selectedNode={selectedNode} />
       </div>
     </div>
   );

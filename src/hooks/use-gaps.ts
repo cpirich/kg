@@ -61,6 +61,10 @@ export function useGaps(): UseGapsResult {
         model,
       );
 
+      // Clear existing gaps and questions before storing new ones
+      await db.knowledgeGaps.clear();
+      await db.researchQuestions.clear();
+
       // Store gaps in DB
       if (detectedGaps.length > 0) {
         await db.knowledgeGaps.bulkPut(detectedGaps);

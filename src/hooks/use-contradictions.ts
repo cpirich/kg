@@ -46,6 +46,9 @@ export function useContradictions(): UseContradictionsResult {
       // Run the detection pipeline
       const detected = await detectContradictions(claims, client, model);
 
+      // Clear existing contradictions before storing new ones
+      await db.contradictions.clear();
+
       // Store new contradictions in DB
       if (detected.length > 0) {
         await db.contradictions.bulkPut(detected);

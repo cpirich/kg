@@ -1,9 +1,23 @@
+"use client";
+
+import { useLiveQuery } from "dexie-react-hooks";
 import { AlertTriangle, FileText, Lightbulb, Search } from "lucide-react";
 
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { db } from "@/lib/db/schema";
 
 export default function DashboardPage() {
+  const documentCount = useLiveQuery(() => db.documents.count(), []);
+  const claimCount = useLiveQuery(() => db.claims.count(), []);
+  const contradictionCount = useLiveQuery(() => db.contradictions.count(), []);
+  const gapCount = useLiveQuery(() => db.knowledgeGaps.count(), []);
+
+  const recentDocuments = useLiveQuery(
+    () => db.documents.orderBy("createdAt").reverse().limit(5).toArray(),
+    [],
+  );
+
   return (
     <div className="space-y-6">
       <div>
@@ -16,25 +30,25 @@ export default function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Documents"
-          value={0}
+          value={documentCount ?? 0}
           description="Papers uploaded"
           icon={FileText}
         />
         <StatCard
           title="Claims"
-          value={0}
+          value={claimCount ?? 0}
           description="Extracted from papers"
           icon={Lightbulb}
         />
         <StatCard
           title="Contradictions"
-          value={0}
+          value={contradictionCount ?? 0}
           description="Detected conflicts"
           icon={AlertTriangle}
         />
         <StatCard
           title="Knowledge Gaps"
-          value={0}
+          value={gapCount ?? 0}
           description="Areas to explore"
           icon={Search}
         />
@@ -46,11 +60,32 @@ export default function DashboardPage() {
             <CardTitle>Recent Documents</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex h-32 items-center justify-center text-muted-foreground">
-              <p className="text-sm">
-                No documents uploaded yet. Go to Upload Papers to get started.
-              </p>
-            </div>
+            {recentDocuments && recentDocuments.length > 0 ? (
+              <ul className="space-y-2">
+                {recentDocuments.map((doc) => (
+                  <li
+                    key={doc.id}
+                    className="flex items-center justify-between rounded-md border px-3 py-2"
+                  >
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <FileText className="size-4 shrink-0 text-muted-foreground" />
+                      <span className="truncate text-sm font-medium">
+                        {doc.name}
+                      </span>
+                    </div>
+                    <span className="ml-2 shrink-0 text-xs text-muted-foreground">
+                      {new Date(doc.createdAt).toLocaleDateString()}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="flex h-32 items-center justify-center text-muted-foreground">
+                <p className="text-sm">
+                  No documents uploaded yet. Go to Upload Papers to get started.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

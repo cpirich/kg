@@ -9,7 +9,7 @@ import {
   Trash2,
   Upload,
 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +39,8 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
+import { db, ensureSettings } from "@/lib/db/schema";
+import { clearAllData, exportAllData, importAllData } from "@/lib/utils/export";
 
 export default function SettingsPage() {
   const [showApiKey, setShowApiKey] = useState(false);
@@ -47,6 +49,122 @@ export default function SettingsPage() {
   const [chunkSize, setChunkSize] = useState([1500]);
   const [overlap, setOverlap] = useState([200]);
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load existing settings on mount
+  useEffect(() => {
+    ensureSettings().then((settings) => {
+      setApiKey(settings.apiKey ?? "");
+      setModel(settings.model);
+      setChunkSize([settings.chunkSize]);
+      setOverlap([settings.chunkOverlap]);
+    });
+  }, []);
+
+  // Save API key
+  const handleSaveApiKey = useCallback(async () => {
+    await db.appSettings.put({
+      id: "settings",
+      apiKey: apiKey || undefined,
+      model,
+      chunkSize: chunkSize[0],
+      chunkOverlap: overlap[0],
+    });
+  }, [apiKey, model, chunkSize, overlap]);
+
+  // Save model selection
+  const handleModelChange = useCallback(
+    async (value: string) => {
+      setModel(value);
+      await db.appSettings.put({
+        id: "settings",
+        apiKey: apiKey || undefined,
+        model: value,
+        chunkSize: chunkSize[0],
+        chunkOverlap: overlap[0],
+      });
+    },
+    [apiKey, chunkSize, overlap],
+  );
+
+  // Save chunk size
+  const handleChunkSizeChange = useCallback(
+    async (value: number[]) => {
+      setChunkSize(value);
+      await db.appSettings.put({
+        id: "settings",
+        apiKey: apiKey || undefined,
+        model,
+        chunkSize: value[0],
+        chunkOverlap: overlap[0],
+      });
+    },
+    [apiKey, model, overlap],
+  );
+
+  // Save overlap
+  const handleOverlapChange = useCallback(
+    async (value: number[]) => {
+      setOverlap(value);
+      await db.appSettings.put({
+        id: "settings",
+        apiKey: apiKey || undefined,
+        model,
+        chunkSize: chunkSize[0],
+        chunkOverlap: value[0],
+      });
+    },
+    [apiKey, model, chunkSize],
+  );
+
+  // Export data as JSON file download
+  const handleExport = useCallback(async () => {
+    const jsonString = await exportAllData();
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `knowledge-gap-export-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, []);
+
+  // Import data from JSON file
+  const handleImport = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const text = await file.text();
+      await importAllData(text);
+
+      // Reload settings into local state after import
+      const settings = await ensureSettings();
+      setApiKey(settings.apiKey ?? "");
+      setModel(settings.model);
+      setChunkSize([settings.chunkSize]);
+      setOverlap([settings.chunkOverlap]);
+
+      // Reset the file input so the same file can be re-imported
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    },
+    [],
+  );
+
+  // Clear all data
+  const handleClearAll = useCallback(async () => {
+    await clearAllData();
+    // Reset local state to defaults
+    setApiKey("");
+    setModel("claude-sonnet-4-20250514");
+    setChunkSize([1500]);
+    setOverlap([200]);
+    setClearDialogOpen(false);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -93,7 +211,9 @@ export default function SettingsPage() {
                   )}
                 </Button>
               </div>
-              <Button variant="outline">Save</Button>
+              <Button variant="outline" onClick={handleSaveApiKey}>
+                Save
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -107,7 +227,7 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Select value={model} onValueChange={setModel}>
+            <Select value={model} onValueChange={handleModelChange}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -141,7 +261,7 @@ export default function SettingsPage() {
               </div>
               <Slider
                 value={chunkSize}
-                onValueChange={setChunkSize}
+                onValueChange={handleChunkSizeChange}
                 min={500}
                 max={3000}
                 step={100}
@@ -162,7 +282,7 @@ export default function SettingsPage() {
               </div>
               <Slider
                 value={overlap}
-                onValueChange={setOverlap}
+                onValueChange={handleOverlapChange}
                 min={0}
                 max={500}
                 step={50}
@@ -187,7 +307,7 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline">
+              <Button variant="outline" onClick={handleExport}>
                 <Download className="size-4" />
                 Export Data
               </Button>
@@ -196,12 +316,11 @@ export default function SettingsPage() {
                   <Upload className="size-4" />
                   Import Data
                   <input
+                    ref={fileInputRef}
                     type="file"
                     accept=".json"
                     className="sr-only"
-                    onChange={() => {
-                      // Will be connected to DB later
-                    }}
+                    onChange={handleImport}
                   />
                 </label>
               </Button>
@@ -228,13 +347,7 @@ export default function SettingsPage() {
                     >
                       Cancel
                     </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={() => {
-                        // Will be connected to DB later
-                        setClearDialogOpen(false);
-                      }}
-                    >
+                    <Button variant="destructive" onClick={handleClearAll}>
                       Delete Everything
                     </Button>
                   </DialogFooter>

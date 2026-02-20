@@ -1,17 +1,84 @@
 /**
+ * Words ending in 's' that should NOT be singularized.
+ * These are common words that end in 's' but are not plural forms.
+ */
+const SINGULARIZATION_EXCEPTIONS = new Set([
+  "less",
+  "class",
+  "process",
+  "bias",
+  "loss",
+  "axis",
+  "analysis",
+  "basis",
+  "crisis",
+  "diagnosis",
+  "hypothesis",
+  "thesis",
+  "synthesis",
+  "consensus",
+  "focus",
+  "status",
+  "virus",
+  "plus",
+  "gas",
+  "bus",
+  "stress",
+  "success",
+  "access",
+  "progress",
+  "address",
+  "express",
+  "congress",
+  "mass",
+  "glass",
+  "grass",
+  "cross",
+  "boss",
+  "moss",
+]);
+
+/**
+ * Check if a word should be excluded from singularization based on its suffix pattern.
+ * Words ending in "ss", "us", "is", "sis", or "ous" are typically not simple plurals.
+ */
+function isSingularizationException(word: string): boolean {
+  if (SINGULARIZATION_EXCEPTIONS.has(word)) {
+    return true;
+  }
+
+  // Pattern-based exceptions: words ending in these suffixes are not simple plurals
+  if (
+    word.endsWith("ss") ||
+    word.endsWith("us") ||
+    word.endsWith("is") ||
+    word.endsWith("sis") ||
+    word.endsWith("ous")
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Normalize a topic label for deduplication.
  * - Lowercase
  * - Trim whitespace
  * - Collapse internal whitespace
  * - Basic singularization (remove trailing 's' if word length > 3)
+ *   with exceptions for words that naturally end in 's'
  */
 export function normalizeLabel(label: string): string {
   let normalized = label.toLowerCase().trim().replace(/\s+/g, " ");
 
   // Basic singularization: remove trailing 's' if the word is long enough
-  // This is intentionally simple — handles "neurons" → "neuron", "methods" → "method"
-  // but avoids breaking "gas", "bus", etc.
-  if (normalized.length > 3 && normalized.endsWith("s")) {
+  // and is not an exception (words that naturally end in 's')
+  if (
+    normalized.length > 3 &&
+    normalized.endsWith("s") &&
+    !isSingularizationException(normalized)
+  ) {
     normalized = normalized.slice(0, -1);
   }
 
