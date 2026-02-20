@@ -40,11 +40,13 @@ describe("generateContradictionCandidates", () => {
     const claims: Claim[] = [
       makeClaim({
         id: "claim_a",
+        documentId: "doc_1",
         type: "finding",
         topicIds: ["topic_1", "topic_2"],
       }),
       makeClaim({
         id: "claim_b",
+        documentId: "doc_2",
         type: "finding",
         topicIds: ["topic_2", "topic_3"],
       }),
@@ -59,11 +61,13 @@ describe("generateContradictionCandidates", () => {
     const claims: Claim[] = [
       makeClaim({
         id: "claim_a",
+        documentId: "doc_1",
         type: "finding",
         topicIds: ["topic_1"],
       }),
       makeClaim({
         id: "claim_b",
+        documentId: "doc_2",
         type: "methodology",
         topicIds: ["topic_1"],
       }),
@@ -77,13 +81,35 @@ describe("generateContradictionCandidates", () => {
     const claims: Claim[] = [
       makeClaim({
         id: "claim_a",
+        documentId: "doc_1",
         type: "finding",
         topicIds: ["topic_1"],
       }),
       makeClaim({
         id: "claim_b",
+        documentId: "doc_2",
         type: "finding",
         topicIds: ["topic_2"],
+      }),
+    ];
+
+    const candidates = generateContradictionCandidates(claims);
+    expect(candidates).toHaveLength(0);
+  });
+
+  it("excludes pairs from the same document", () => {
+    const claims: Claim[] = [
+      makeClaim({
+        id: "claim_a",
+        documentId: "doc_1",
+        type: "finding",
+        topicIds: ["topic_1"],
+      }),
+      makeClaim({
+        id: "claim_b",
+        documentId: "doc_1",
+        type: "finding",
+        topicIds: ["topic_1"],
       }),
     ];
 
@@ -95,23 +121,26 @@ describe("generateContradictionCandidates", () => {
     const claims: Claim[] = [
       makeClaim({
         id: "claim_a",
+        documentId: "doc_1",
         type: "finding",
         topicIds: ["topic_1"],
       }),
       makeClaim({
         id: "claim_b",
+        documentId: "doc_2",
         type: "finding",
         topicIds: ["topic_1"],
       }),
       makeClaim({
         id: "claim_c",
+        documentId: "doc_3",
         type: "finding",
         topicIds: ["topic_1"],
       }),
     ];
 
     const candidates = generateContradictionCandidates(claims);
-    // 3 choose 2 = 3 pairs
+    // 3 choose 2 = 3 pairs (all from different docs)
     expect(candidates).toHaveLength(3);
   });
 
@@ -119,11 +148,13 @@ describe("generateContradictionCandidates", () => {
     const claims: Claim[] = [
       makeClaim({
         id: "claim_a",
+        documentId: "doc_1",
         type: "finding",
         topicIds: ["topic_1", "topic_2"],
       }),
       makeClaim({
         id: "claim_b",
+        documentId: "doc_2",
         type: "finding",
         topicIds: ["topic_1", "topic_2"],
       }),
@@ -131,6 +162,33 @@ describe("generateContradictionCandidates", () => {
 
     const candidates = generateContradictionCandidates(claims);
     expect(candidates).toHaveLength(1);
+  });
+
+  it("prioritizes pairs with more shared topics", () => {
+    const claims: Claim[] = [
+      makeClaim({
+        id: "claim_a",
+        documentId: "doc_1",
+        type: "finding",
+        topicIds: ["topic_1", "topic_2", "topic_3"],
+      }),
+      makeClaim({
+        id: "claim_b",
+        documentId: "doc_2",
+        type: "finding",
+        topicIds: ["topic_1"],
+      }),
+      makeClaim({
+        id: "claim_c",
+        documentId: "doc_3",
+        type: "finding",
+        topicIds: ["topic_1", "topic_2", "topic_3"],
+      }),
+    ];
+
+    const candidates = generateContradictionCandidates(claims);
+    // Pair (a,c) has 3 shared topics, should come first
+    expect(candidates[0]).toEqual(["claim_a", "claim_c"]);
   });
 
   it("returns empty array for a single claim", () => {
@@ -285,12 +343,14 @@ describe("detectContradictions", () => {
     const claims: Claim[] = [
       makeClaim({
         id: "claim_a",
+        documentId: "doc_1",
         type: "finding",
         topicIds: ["topic_1"],
         text: "X increases Y.",
       }),
       makeClaim({
         id: "claim_b",
+        documentId: "doc_2",
         type: "finding",
         topicIds: ["topic_1"],
         text: "X decreases Y.",
@@ -321,11 +381,13 @@ describe("detectContradictions", () => {
     const claims: Claim[] = [
       makeClaim({
         id: "claim_a",
+        documentId: "doc_1",
         type: "finding",
         topicIds: ["topic_1"],
       }),
       makeClaim({
         id: "claim_b",
+        documentId: "doc_2",
         type: "finding",
         topicIds: ["topic_1"],
       }),

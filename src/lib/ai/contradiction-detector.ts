@@ -49,15 +49,31 @@ function validateContradictionResult(data: unknown): ContradictionCheckResult {
   };
 }
 
+/** Maximum number of candidate pairs to verify via AI. */
+const MAX_CANDIDATES = 50;
+
+/** Number of concurrent AI verification calls. */
+const CONCURRENCY_LIMIT = 3;
+
+/**
+ * Count the number of shared topic IDs between two claims.
+ */
+function countSharedTopics(claimA: Claim, claimB: Claim): number {
+  const setB = new Set(claimB.topicIds);
+  return claimA.topicIds.filter((id) => setB.has(id)).length;
+}
+
 /**
  * Generate candidate contradiction pairs from a set of claims.
- * Two claims are candidates if they share at least one topic and have the same claim type.
- * This is a pure function — no AI calls.
+ * Two claims are candidates if they share at least one topic, have the same
+ * claim type, and come from different documents (cross-document contradictions
+ * are the most useful). Candidates are ranked by number of shared topics and
+ * capped at MAX_CANDIDATES to bound the number of AI calls.
  */
 export function generateContradictionCandidates(
   claims: Claim[],
 ): Array<[ClaimId, ClaimId]> {
-  const candidates: Array<[ClaimId, ClaimId]> = [];
+  const scored: Array<{ pair: [ClaimId, ClaimId]; score: number }> = [];
   const seen = new Set<string>();
 
   for (let i = 0; i < claims.length; i++) {
@@ -65,16 +81,19 @@ export function generateContradictionCandidates(
       const claimA = claims[i];
       const claimB = claims[j];
 
+      // Must be from different documents
+      if (claimA.documentId === claimB.documentId) {
+        continue;
+      }
+
       // Must have the same claim type
       if (claimA.type !== claimB.type) {
         continue;
       }
 
       // Must share at least one topic
-      const sharedTopic = claimA.topicIds.some((topicId) =>
-        claimB.topicIds.includes(topicId),
-      );
-      if (!sharedTopic) {
+      const shared = countSharedTopics(claimA, claimB);
+      if (shared === 0) {
         continue;
       }
 
@@ -88,11 +107,13 @@ export function generateContradictionCandidates(
       }
       seen.add(key);
 
-      candidates.push([claimA.id, claimB.id]);
+      scored.push({ pair: [claimA.id, claimB.id], score: shared });
     }
   }
 
-  return candidates;
+  // Sort by shared topic count (descending) and cap
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, MAX_CANDIDATES).map((s) => s.pair);
 }
 
 /**
@@ -159,30 +180,41 @@ export async function detectContradictions(
 
   const contradictions: Contradiction[] = [];
 
-  // Process candidates sequentially to avoid rate limiting
-  for (const [idA, idB] of candidates) {
-    const claimA = claimMap.get(idA);
-    const claimB = claimMap.get(idB);
+  // Process candidates with bounded concurrency
+  let index = 0;
+  const runNext = async (): Promise<void> => {
+    while (index < candidates.length) {
+      const currentIndex = index++;
+      const [idA, idB] = candidates[currentIndex];
+      const claimA = claimMap.get(idA);
+      const claimB = claimMap.get(idB);
 
-    if (!claimA || !claimB) {
-      continue;
+      if (!claimA || !claimB) {
+        continue;
+      }
+
+      const result = await verifyContradiction(claimA, claimB, client, model);
+
+      if (result.isContradiction && result.confidence > 0.6) {
+        contradictions.push({
+          id: createId<ContradictionId>("contra"),
+          claimAId: idA,
+          claimBId: idB,
+          description: result.description,
+          severity: result.severity,
+          confidence: result.confidence,
+          status: "pending",
+          createdAt: Date.now(),
+        });
+      }
     }
+  };
 
-    const result = await verifyContradiction(claimA, claimB, client, model);
-
-    if (result.isContradiction && result.confidence > 0.6) {
-      contradictions.push({
-        id: createId<ContradictionId>("contra"),
-        claimAId: idA,
-        claimBId: idB,
-        description: result.description,
-        severity: result.severity,
-        confidence: result.confidence,
-        status: "pending",
-        createdAt: Date.now(),
-      });
-    }
-  }
+  const workers = Array.from(
+    { length: Math.min(CONCURRENCY_LIMIT, candidates.length) },
+    () => runNext(),
+  );
+  await Promise.all(workers);
 
   return contradictions;
 }
