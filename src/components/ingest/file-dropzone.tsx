@@ -6,9 +6,10 @@ import { type FileRejection, useDropzone } from "react-dropzone";
 
 interface FileDropzoneProps {
   onFilesAccepted?: (files: File[]) => void;
+  disabled?: boolean;
 }
 
-export function FileDropzone({ onFilesAccepted }: FileDropzoneProps) {
+export function FileDropzone({ onFilesAccepted, disabled }: FileDropzoneProps) {
   const [acceptedFiles, setAcceptedFiles] = useState<File[]>([]);
   const [rejectionMessage, setRejectionMessage] = useState<string | null>(null);
 
@@ -30,6 +31,7 @@ export function FileDropzone({ onFilesAccepted }: FileDropzoneProps) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
+    disabled,
     accept: {
       "application/pdf": [".pdf"],
       "text/plain": [".txt"],

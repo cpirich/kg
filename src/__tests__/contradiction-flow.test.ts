@@ -253,3 +253,157 @@ describe("contradiction detection flow", () => {
     expect(candidates).toHaveLength(3);
   });
 });
+
+describe("contradiction detection: re-run idempotency", () => {
+  it("clears previous contradictions before storing new ones", async () => {
+    const topicA = await seedTopic(db, "neural networks");
+
+    const claim1 = await seedClaim(
+      db,
+      "Deep learning requires massive datasets.",
+      "claim",
+      [topicA],
+    );
+    const claim2 = await seedClaim(
+      db,
+      "Deep learning works well with small datasets.",
+      "claim",
+      [topicA],
+    );
+
+    // First run: store a contradiction
+    const firstRunContradiction: Contradiction = {
+      id: createId<ContradictionId>("contra"),
+      claimAId: claim1.id,
+      claimBId: claim2.id,
+      description: "First run contradiction.",
+      severity: "high",
+      confidence: 0.9,
+      status: "pending",
+      createdAt: Date.now(),
+    };
+    await db.contradictions.bulkPut([firstRunContradiction]);
+
+    let stored = await db.contradictions.toArray();
+    expect(stored).toHaveLength(1);
+
+    // Second run: clear then store new results (simulating hook behavior)
+    await db.contradictions.clear();
+    const secondRunContradiction: Contradiction = {
+      id: createId<ContradictionId>("contra"),
+      claimAId: claim1.id,
+      claimBId: claim2.id,
+      description: "Second run contradiction.",
+      severity: "medium",
+      confidence: 0.75,
+      status: "pending",
+      createdAt: Date.now(),
+    };
+    await db.contradictions.bulkPut([secondRunContradiction]);
+
+    stored = await db.contradictions.toArray();
+    // Should have exactly 1, not 2 (no accumulation)
+    expect(stored).toHaveLength(1);
+    expect(stored[0].description).toBe("Second run contradiction.");
+    expect(stored[0].severity).toBe("medium");
+  });
+
+  it("ends with zero contradictions if second run finds none", async () => {
+    const topicA = await seedTopic(db, "neural networks");
+
+    const claim1 = await seedClaim(
+      db,
+      "Deep learning requires massive datasets.",
+      "claim",
+      [topicA],
+    );
+    const claim2 = await seedClaim(
+      db,
+      "Deep learning works well with small datasets.",
+      "claim",
+      [topicA],
+    );
+
+    // First run: store a contradiction
+    const contradiction: Contradiction = {
+      id: createId<ContradictionId>("contra"),
+      claimAId: claim1.id,
+      claimBId: claim2.id,
+      description: "Some contradiction.",
+      severity: "high",
+      confidence: 0.85,
+      status: "pending",
+      createdAt: Date.now(),
+    };
+    await db.contradictions.bulkPut([contradiction]);
+
+    let stored = await db.contradictions.toArray();
+    expect(stored).toHaveLength(1);
+
+    // Second run: clear then store nothing (no contradictions detected)
+    await db.contradictions.clear();
+    // No bulkPut — the detection found nothing
+
+    stored = await db.contradictions.toArray();
+    expect(stored).toHaveLength(0);
+  });
+
+  it("replaces all previous results when re-running with more results", async () => {
+    const topicA = await seedTopic(db, "machine learning");
+
+    const claim1 = await seedClaim(db, "Claim A.", "finding", [topicA]);
+    const claim2 = await seedClaim(db, "Claim B.", "finding", [topicA]);
+    const claim3 = await seedClaim(db, "Claim C.", "finding", [topicA]);
+
+    // First run: 1 contradiction
+    await db.contradictions.bulkPut([
+      {
+        id: createId<ContradictionId>("contra"),
+        claimAId: claim1.id,
+        claimBId: claim2.id,
+        description: "First contradiction from run 1.",
+        severity: "low" as const,
+        confidence: 0.7,
+        status: "pending" as const,
+        createdAt: Date.now(),
+      },
+    ]);
+
+    let stored = await db.contradictions.toArray();
+    expect(stored).toHaveLength(1);
+
+    // Second run: clear and store 2 contradictions
+    await db.contradictions.clear();
+    await db.contradictions.bulkPut([
+      {
+        id: createId<ContradictionId>("contra"),
+        claimAId: claim1.id,
+        claimBId: claim2.id,
+        description: "Contradiction 1 from run 2.",
+        severity: "medium" as const,
+        confidence: 0.8,
+        status: "pending" as const,
+        createdAt: Date.now(),
+      },
+      {
+        id: createId<ContradictionId>("contra"),
+        claimAId: claim2.id,
+        claimBId: claim3.id,
+        description: "Contradiction 2 from run 2.",
+        severity: "high" as const,
+        confidence: 0.95,
+        status: "pending" as const,
+        createdAt: Date.now(),
+      },
+    ]);
+
+    stored = await db.contradictions.toArray();
+    // Should have exactly 2, not 3
+    expect(stored).toHaveLength(2);
+    const descriptions = stored.map((c) => c.description).sort();
+    expect(descriptions).toEqual([
+      "Contradiction 1 from run 2.",
+      "Contradiction 2 from run 2.",
+    ]);
+  });
+});
