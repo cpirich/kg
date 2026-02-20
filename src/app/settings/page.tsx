@@ -50,6 +50,7 @@ export default function SettingsPage() {
   const [overlap, setOverlap] = useState([200]);
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const apiKeyInputRef = useRef<HTMLInputElement>(null);
 
   // Load existing settings on mount
   useEffect(() => {
@@ -61,16 +62,28 @@ export default function SettingsPage() {
     });
   }, []);
 
-  // Save API key
+  // Save API key — reads DOM value directly to handle programmatic fills
+  // (browser autofill, password managers) that bypass React's onChange.
   const handleSaveApiKey = useCallback(async () => {
+    const domValue = apiKeyInputRef.current?.value ?? "";
+    const keyToSave = domValue || apiKey;
+    if (domValue && domValue !== apiKey) {
+      setApiKey(domValue);
+    }
     await db.appSettings.put({
       id: "settings",
-      apiKey: apiKey || undefined,
+      apiKey: keyToSave || undefined,
       model,
       chunkSize: chunkSize[0],
       chunkOverlap: overlap[0],
     });
   }, [apiKey, model, chunkSize, overlap]);
+
+  // Helper to get current API key, preferring DOM value for programmatic fills
+  const getCurrentApiKey = useCallback(() => {
+    const domValue = apiKeyInputRef.current?.value ?? "";
+    return domValue || apiKey;
+  }, [apiKey]);
 
   // Save model selection
   const handleModelChange = useCallback(
@@ -78,13 +91,13 @@ export default function SettingsPage() {
       setModel(value);
       await db.appSettings.put({
         id: "settings",
-        apiKey: apiKey || undefined,
+        apiKey: getCurrentApiKey() || undefined,
         model: value,
         chunkSize: chunkSize[0],
         chunkOverlap: overlap[0],
       });
     },
-    [apiKey, chunkSize, overlap],
+    [getCurrentApiKey, chunkSize, overlap],
   );
 
   // Save chunk size
@@ -93,13 +106,13 @@ export default function SettingsPage() {
       setChunkSize(value);
       await db.appSettings.put({
         id: "settings",
-        apiKey: apiKey || undefined,
+        apiKey: getCurrentApiKey() || undefined,
         model,
         chunkSize: value[0],
         chunkOverlap: overlap[0],
       });
     },
-    [apiKey, model, overlap],
+    [getCurrentApiKey, model, overlap],
   );
 
   // Save overlap
@@ -108,13 +121,13 @@ export default function SettingsPage() {
       setOverlap(value);
       await db.appSettings.put({
         id: "settings",
-        apiKey: apiKey || undefined,
+        apiKey: getCurrentApiKey() || undefined,
         model,
         chunkSize: chunkSize[0],
         chunkOverlap: value[0],
       });
     },
-    [apiKey, model, chunkSize],
+    [getCurrentApiKey, model, chunkSize],
   );
 
   // Export data as JSON file download
@@ -192,6 +205,7 @@ export default function SettingsPage() {
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Input
+                  ref={apiKeyInputRef}
                   type={showApiKey ? "text" : "password"}
                   placeholder="sk-ant-..."
                   value={apiKey}

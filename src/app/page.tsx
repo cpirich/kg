@@ -3,8 +3,16 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { AlertTriangle, FileText, Lightbulb, Search } from "lucide-react";
 
+import { Bar, BarChart, XAxis, YAxis } from "recharts";
+
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  type ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 import { db } from "@/lib/db/schema";
 
 export default function DashboardPage() {
@@ -12,6 +20,11 @@ export default function DashboardPage() {
   const claimCount = useLiveQuery(() => db.claims.count(), []);
   const contradictionCount = useLiveQuery(() => db.contradictions.count(), []);
   const gapCount = useLiveQuery(() => db.knowledgeGaps.count(), []);
+
+  const topics = useLiveQuery(
+    () => db.topics.orderBy("claimCount").reverse().limit(10).toArray(),
+    [],
+  );
 
   const recentDocuments = useLiveQuery(
     () => db.documents.orderBy("createdAt").reverse().limit(5).toArray(),
@@ -94,11 +107,47 @@ export default function DashboardPage() {
             <CardTitle>Topic Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex h-32 items-center justify-center text-muted-foreground">
-              <p className="text-sm">
-                Topic chart will appear after uploading papers.
-              </p>
-            </div>
+            {topics && topics.length > 0 ? (
+              <ChartContainer
+                config={
+                  {
+                    claimCount: {
+                      label: "Claims",
+                      color: "hsl(var(--chart-1))",
+                    },
+                  } satisfies ChartConfig
+                }
+                className="h-[200px] w-full"
+              >
+                <BarChart
+                  data={topics}
+                  layout="vertical"
+                  margin={{ left: 0, right: 16 }}
+                >
+                  <XAxis type="number" hide />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={120}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar
+                    dataKey="claimCount"
+                    fill="var(--color-claimCount)"
+                    radius={[0, 4, 4, 0]}
+                  />
+                </BarChart>
+              </ChartContainer>
+            ) : (
+              <div className="flex h-32 items-center justify-center text-muted-foreground">
+                <p className="text-sm">
+                  Topic chart will appear after uploading papers.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

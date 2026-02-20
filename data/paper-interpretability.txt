@@ -1,0 +1,48 @@
+Understanding Neural Language Models: Advances in Interpretability and Explainability
+
+Authors: Thompson, E., Nakamura, H., & Osei, B.
+Annual Conference of the Association for Computational Linguistics (ACL), 2025
+
+Abstract
+
+As neural language models are increasingly deployed in high-stakes applications including healthcare, legal analysis, and scientific research, understanding their decision-making processes has become critical. This paper presents a comprehensive survey and novel experiments on interpretability methods for language models, covering attention analysis, probing classifiers, mechanistic interpretability, and feature attribution techniques. We find that probing classifiers reveal that BERT and GPT models encode rich syntactic and semantic information in intermediate layers, but this information is distributed across layers in complex, non-linear ways that resist simple interpretation. Our novel contribution, Layerwise Concept Attribution (LCA), provides more faithful explanations than existing methods by tracking concept representations across all layers simultaneously. We demonstrate that attention weights alone are insufficient for model interpretation, correlating with gradient-based importance scores only 34% of the time. These findings have significant implications for the responsible deployment of language models in sensitive domains.
+
+1. Introduction
+
+The black-box nature of large language models poses fundamental challenges for their deployment in domains requiring transparency and accountability. When a language model makes a prediction — whether classifying a medical document, analyzing a legal contract, or summarizing scientific literature — stakeholders need to understand why the model produced its output.
+
+This work evaluates the current state of interpretability research for transformer-based language models. We focus on four major approaches: attention analysis, probing classifiers, mechanistic interpretability, and feature attribution. All experiments use BERT-large and GPT-2 as representative models from the encoder-only and decoder-only transformer families.
+
+2. Key Findings
+
+2.1 Attention Weight Analysis
+
+Attention weights are the most commonly used interpretability tool for transformer models, yet our experiments confirm that they provide unreliable explanations. We find that attention weights correlate with true feature importance (as measured by integrated gradients) only 34% of the time. In 28% of cases, the top-attended tokens are actively misleading — they receive high attention but have minimal causal influence on the model's output. This finding is consistent across both BERT and GPT architectures.
+
+Despite these limitations, attention patterns do reveal meaningful structural information about how models process language. We identify consistent attention patterns corresponding to syntactic relationships (subject-verb agreement, modifier attachment) that appear across different inputs. These structural patterns are more reliable than token-level attention weights for understanding model behavior.
+
+2.2 Probing Classifiers
+
+Linear probing experiments reveal that transformer models encode surprisingly rich linguistic information in their intermediate representations. In BERT-large, we find that: Layer 4 encodes part-of-speech information with 96.2% accuracy; Layers 6-8 encode syntactic dependency relationships with 84.7% accuracy; Layers 10-12 encode semantic role information with 79.3% accuracy.
+
+However, the relationship between encoded information and model predictions is not straightforward. Models can encode information that they do not use for downstream tasks, making probing results an upper bound on what the model actually leverages during inference.
+
+2.3 Mechanistic Interpretability
+
+We apply circuit-level analysis techniques to identify specific subnetworks responsible for particular linguistic capabilities. For subject-verb agreement in BERT, we identify a circuit spanning layers 5-8 involving approximately 15% of model parameters. Ablating this circuit reduces agreement accuracy from 94% to 52% while leaving other capabilities largely intact.
+
+These findings suggest that language models develop modular internal structures despite being trained as monolithic networks. However, circuit discovery remains extremely labor-intensive — our agreement circuit required over 200 researcher-hours to fully characterize. Scaling mechanistic interpretability to cover all model capabilities remains an open challenge.
+
+2.4 Layerwise Concept Attribution (LCA)
+
+Our novel method, LCA, tracks how input concepts are transformed across all layers to produce final predictions. Unlike attention analysis or single-layer probing, LCA provides a holistic view of information flow through the model. On a benchmark of 500 annotated explanation pairs, LCA achieves a faithfulness score of 0.82 compared to 0.61 for attention-based explanations and 0.74 for integrated gradients.
+
+LCA reveals that models often make predictions based on different features than humans would expect. In sentiment analysis, BERT frequently relies on discourse markers and hedging language rather than explicitly positive or negative words. This finding has implications for bias detection and model auditing.
+
+2.5 Implications for Responsible AI
+
+Our experiments highlight a critical gap between model capability and model understanding. Current language models can achieve high accuracy on complex tasks, but our ability to explain their predictions remains limited. We argue that interpretability should be treated as a first-class requirement alongside accuracy in model development. Deploying uninterpretable models in high-stakes domains creates accountability risks that cannot be mitigated by accuracy metrics alone.
+
+3. Future Directions
+
+Key open questions include: How do different pre-training objectives affect the interpretability of learned representations? Can interpretability techniques be integrated into the training process to produce inherently more explainable models? What is the relationship between model compression (pruning, distillation) and the faithfulness of post-hoc explanations? We believe that progress on these questions is essential for the long-term viability of language model deployment in sensitive applications.

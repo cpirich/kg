@@ -1,0 +1,40 @@
+Recurrent Neural Networks for Long-Sequence Modeling: Advantages Over Transformer Architectures
+
+Authors: Okonkwo, A., Fischer, M., & Yamamoto, T.
+Proceedings of the International Conference on Machine Learning (ICML), 2025
+
+Abstract
+
+Despite the widespread adoption of transformer architectures, this paper demonstrates that recurrent neural networks maintain significant advantages for long-sequence modeling tasks. Through extensive experiments on genomic sequence analysis, time-series forecasting, and document-level language modeling, we show that RNNs achieve superior performance on long-sequence tasks compared to transformers when sequences exceed 8,000 tokens. Our proposed Enhanced LSTM (E-LSTM) architecture incorporates gated memory compression and achieves a 15.7% improvement over the best transformer model on sequences longer than 16,000 tokens. We further demonstrate that the quadratic memory complexity of self-attention makes transformers impractical for many real-world long-sequence applications, while RNNs maintain linear memory scaling. These results challenge the prevailing narrative that transformers have universally superseded recurrent architectures.
+
+1. Introduction
+
+The transformer revolution in deep learning has led many researchers to abandon recurrent neural network research entirely. However, this paper argues that this abandonment is premature. While transformers excel on tasks with moderate sequence lengths, fundamental architectural limitations — particularly the quadratic scaling of self-attention — create significant disadvantages for long-sequence applications.
+
+We evaluate RNN and transformer architectures on three long-sequence domains: genomic sequence classification (sequences of 10,000-50,000 base pairs), multivariate time-series forecasting (1,000-20,000 time steps), and document-level language modeling (documents of 5,000-30,000 tokens).
+
+2. Key Findings
+
+2.1 RNN Superiority on Long Sequences
+
+Our experiments demonstrate that RNNs achieve superior performance on long-sequence tasks compared to transformers. On genomic sequences exceeding 8,000 base pairs, our E-LSTM achieves 89.4% accuracy compared to 76.2% for the best transformer variant (Longformer). For document-level language modeling with documents exceeding 10,000 tokens, E-LSTM achieves a perplexity of 18.3 versus 24.7 for the transformer baseline.
+
+2.2 Memory Efficiency
+
+Transformer self-attention requires O(n²) memory with respect to sequence length, making it fundamentally unsuitable for very long sequences without approximation. While efficient transformer variants (Linformer, Performer) reduce this to O(n), they sacrifice the exact attention computation that drives transformer performance. Our E-LSTM maintains O(n) memory while preserving full sequence modeling capability through gated memory compression.
+
+2.3 Training Stability
+
+We observe that RNNs exhibit significantly more stable training dynamics on long-sequence tasks. Transformers trained on sequences exceeding 8,000 tokens showed high variance in final performance across random seeds (standard deviation of 4.2 F1 points), while E-LSTM training was highly consistent (standard deviation of 0.8 F1 points). This stability advantage is critical for reproducible scientific research.
+
+2.4 Few-Shot Learning
+
+In low-resource settings with fewer than 500 training examples, RNN architectures consistently outperform transformers. Pre-trained transformer models partially close this gap, but fine-tuning large language models on small datasets introduces overfitting risks that are less pronounced with smaller RNN architectures. We found that data augmentation techniques are more effective when applied to RNN training.
+
+2.5 Attention Mechanism Limitations
+
+While attention mechanisms provide interpretable weight distributions, we find that attention weights do not reliably indicate feature importance for prediction. In 43% of evaluated cases, the highest-attention tokens were not among the top-10 most predictive features as determined by gradient-based attribution methods. This raises concerns about using attention for model interpretability.
+
+3. Conclusions
+
+Our results demonstrate that the wholesale abandonment of RNN research is premature and scientifically unjustified. For long-sequence applications, genomic modeling, and low-resource settings, recurrent architectures remain the superior choice. We advocate for a more nuanced view of architecture selection that considers task-specific requirements rather than defaulting to transformer-based approaches. Future work should explore hybrid architectures that combine the strengths of both paradigms.

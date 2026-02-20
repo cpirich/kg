@@ -23,7 +23,7 @@ export default function MapPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-        <div className="min-h-[500px]">
+        <div className="h-[500px]">
           <KnowledgeGraph onSelectNode={setSelectedNode} />
         </div>
         <NodeDetail selectedNode={selectedNode} />

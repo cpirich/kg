@@ -283,12 +283,13 @@ export function KnowledgeGraph({ onSelectNode }: KnowledgeGraphProps) {
         ))}
       </div>
       <div className="relative flex-1 rounded-b-lg border border-t-0 bg-muted/30">
-        {/* Cytoscape container - always present for ref stability */}
+        {/* Wrapper keeps absolute positioning; Cytoscape overrides position on its container */}
         <div
-          ref={containerRef}
           className="absolute inset-0"
           style={{ display: hasData ? "block" : "none" }}
-        />
+        >
+          <div ref={containerRef} className="h-full w-full" />
+        </div>
 
         {/* Loading state */}
         {isLoading && (
