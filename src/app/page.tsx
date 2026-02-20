@@ -127,7 +127,7 @@ export default function DashboardPage() {
                   <XAxis type="number" hide />
                   <YAxis
                     type="category"
-                    dataKey="name"
+                    dataKey="label"
                     width={120}
                     tickLine={false}
                     axisLine={false}

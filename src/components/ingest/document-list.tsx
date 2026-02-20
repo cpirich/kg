@@ -25,6 +25,11 @@ const statusConfig: Record<string, { label: string; className: string }> = {
     className:
       "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
   },
+  chunking: {
+    label: "Chunking",
+    className:
+      "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
+  },
   analyzing: {
     label: "Analyzing",
     className:

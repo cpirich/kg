@@ -20,6 +20,9 @@ interface Contradiction {
 
 interface ContradictionListProps {
   contradictions: Contradiction[];
+  onSelect?: (id: string) => void;
+  selectedId?: string | null;
+  onStatusChange?: (id: string, status: "confirmed" | "dismissed") => void;
 }
 
 const severityConfig = {
@@ -44,7 +47,12 @@ const severityConfig = {
 
 const severityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
 
-export function ContradictionList({ contradictions }: ContradictionListProps) {
+export function ContradictionList({
+  contradictions,
+  onSelect,
+  selectedId,
+  onStatusChange,
+}: ContradictionListProps) {
   if (contradictions.length === 0) {
     return (
       <div className="flex h-48 flex-col items-center justify-center gap-3 rounded-lg border border-dashed text-muted-foreground">
@@ -68,7 +76,8 @@ export function ContradictionList({ contradictions }: ContradictionListProps) {
         return (
           <Card
             key={contradiction.id}
-            className={`border-l-4 ${config.borderColor}`}
+            className={`border-l-4 ${config.borderColor} ${selectedId === contradiction.id ? "ring-2 ring-primary" : ""} ${onSelect ? "cursor-pointer" : ""}`}
+            onClick={() => onSelect?.(contradiction.id)}
           >
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
@@ -87,11 +96,25 @@ export function ContradictionList({ contradictions }: ContradictionListProps) {
               <p className="text-sm">{contradiction.description}</p>
             </CardContent>
             <CardFooter className="gap-2">
-              <Button size="sm" variant="outline">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStatusChange?.(contradiction.id, "confirmed");
+                }}
+              >
                 <Check className="size-3" />
                 Confirm
               </Button>
-              <Button size="sm" variant="ghost">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStatusChange?.(contradiction.id, "dismissed");
+                }}
+              >
                 <X className="size-3" />
                 Dismiss
               </Button>

@@ -15,7 +15,7 @@ export function FileDropzone({ onFilesAccepted, disabled }: FileDropzoneProps) {
 
   const onDrop = useCallback(
     (accepted: File[], rejections: FileRejection[]) => {
-      setAcceptedFiles((prev) => [...prev, ...accepted]);
+      setAcceptedFiles(accepted);
       setRejectionMessage(null);
       if (rejections.length > 0) {
         setRejectionMessage(

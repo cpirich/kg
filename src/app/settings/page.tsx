@@ -49,6 +49,7 @@ export default function SettingsPage() {
   const [chunkSize, setChunkSize] = useState([1500]);
   const [overlap, setOverlap] = useState([200]);
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const apiKeyInputRef = useRef<HTMLInputElement>(null);
 
@@ -150,19 +151,26 @@ export default function SettingsPage() {
       const file = e.target.files?.[0];
       if (!file) return;
 
-      const text = await file.text();
-      await importAllData(text);
+      try {
+        setImportError(null);
+        const text = await file.text();
+        await importAllData(text);
 
-      // Reload settings into local state after import
-      const settings = await ensureSettings();
-      setApiKey(settings.apiKey ?? "");
-      setModel(settings.model);
-      setChunkSize([settings.chunkSize]);
-      setOverlap([settings.chunkOverlap]);
-
-      // Reset the file input so the same file can be re-imported
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+        // Reload settings into local state after import
+        const settings = await ensureSettings();
+        setApiKey(settings.apiKey ?? "");
+        setModel(settings.model);
+        setChunkSize([settings.chunkSize]);
+        setOverlap([settings.chunkOverlap]);
+      } catch (err) {
+        setImportError(
+          err instanceof Error ? err.message : "Failed to import data",
+        );
+      } finally {
+        // Reset the file input so the same file can be re-imported
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
       }
     },
     [],
@@ -338,6 +346,9 @@ export default function SettingsPage() {
                   />
                 </label>
               </Button>
+              {importError && (
+                <p className="w-full text-sm text-destructive">{importError}</p>
+              )}
               <Dialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
                 <DialogTrigger asChild>
                   <Button variant="destructive">
@@ -350,8 +361,8 @@ export default function SettingsPage() {
                     <DialogTitle>Clear All Data</DialogTitle>
                     <DialogDescription>
                       This will permanently delete all documents, claims,
-                      contradictions, and knowledge gaps. This action cannot be
-                      undone.
+                      contradictions, knowledge gaps, and your saved API key.
+                      This action cannot be undone.
                     </DialogDescription>
                   </DialogHeader>
                   <DialogFooter>

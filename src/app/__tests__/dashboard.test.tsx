@@ -64,7 +64,7 @@ function setQueryReturns(values: {
   claimCount?: number;
   contradictionCount?: number;
   gapCount?: number;
-  topics?: { id: string; name: string; claimCount: number }[];
+  topics?: { id: string; label: string; claimCount: number }[];
   recentDocuments?: { id: string; name: string; createdAt: string }[];
 }) {
   let callIndex = 0;
@@ -99,8 +99,8 @@ describe("DashboardPage", () => {
   it("renders topic chart when topics exist", () => {
     setQueryReturns({
       topics: [
-        { id: "t1", name: "Machine Learning", claimCount: 5 },
-        { id: "t2", name: "Neural Networks", claimCount: 3 },
+        { id: "t1", label: "Machine Learning", claimCount: 5 },
+        { id: "t2", label: "Neural Networks", claimCount: 3 },
       ],
       recentDocuments: [],
     });
