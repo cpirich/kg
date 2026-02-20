@@ -24,6 +24,17 @@
       }
     }
   },
+  "overrides": [
+    {
+      "include": ["src/components/ui/**"],
+      "linter": {
+        "rules": {
+          "suspicious": { "noArrayIndexKey": "off" },
+          "security": { "noDangerouslySetInnerHtml": "off" }
+        }
+      }
+    }
+  ],
   "files": {
     "ignore": ["node_modules", ".next", "out", "public/pdf.worker.min.mjs"]
   }

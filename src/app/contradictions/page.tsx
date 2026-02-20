@@ -1,10 +1,22 @@
+"use client";
+
+import { ClaimCompare } from "@/components/contradictions/claim-compare";
+import { ContradictionList } from "@/components/contradictions/contradiction-list";
+
 export default function ContradictionsPage() {
   return (
-    <main className="p-8">
-      <h1 className="text-3xl font-bold">Contradictions</h1>
-      <p className="mt-2 text-muted-foreground">
-        Claims that conflict across papers, ranked by severity.
-      </p>
-    </main>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Contradictions</h2>
+        <p className="text-muted-foreground">
+          Claims that conflict across papers, ranked by severity.
+        </p>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1fr_400px]">
+        <ContradictionList contradictions={[]} />
+        <ClaimCompare />
+      </div>
+    </div>
   );
 }

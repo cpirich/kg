@@ -1,4 +1,7 @@
+import { AppHeader } from "@/components/layout/app-header";
+import { AppSidebar } from "@/components/layout/app-sidebar";
 import { Providers } from "@/components/layout/providers";
+import { SidebarInset } from "@/components/ui/sidebar";
 import type { Metadata } from "next";
 import "./globals.css";
 
@@ -16,7 +19,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          <AppSidebar />
+          <SidebarInset>
+            <AppHeader />
+            <div className="flex-1 overflow-auto p-6">{children}</div>
+          </SidebarInset>
+        </Providers>
       </body>
     </html>
   );

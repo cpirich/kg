@@ -1,10 +1,24 @@
+"use client";
+
+import { KnowledgeGraph } from "@/components/map/knowledge-graph";
+import { NodeDetail } from "@/components/map/node-detail";
+
 export default function MapPage() {
   return (
-    <main className="p-8">
-      <h1 className="text-3xl font-bold">Knowledge Map</h1>
-      <p className="mt-2 text-muted-foreground">
-        Interactive visualization of topics and their relationships.
-      </p>
-    </main>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Knowledge Map</h2>
+        <p className="text-muted-foreground">
+          Interactive visualization of topics and their relationships.
+        </p>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+        <div className="min-h-[500px]">
+          <KnowledgeGraph />
+        </div>
+        <NodeDetail />
+      </div>
+    </div>
   );
 }
