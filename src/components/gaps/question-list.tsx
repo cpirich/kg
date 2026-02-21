@@ -47,25 +47,25 @@ export function QuestionList({ questions }: QuestionListProps) {
                 <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
                   <div
                     className="h-full rounded-full bg-primary"
-                    style={{ width: `${q.impact * 100}%` }}
+                    style={{ width: `${q.impact * 10}%` }}
                   />
                 </div>
-                <span>{Math.round(q.impact * 100)}%</span>
+                <span>{q.impact}/10</span>
               </div>
               <div className="flex items-center gap-2">
                 <span>Feasibility</span>
                 <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
                   <div
                     className="h-full rounded-full bg-primary"
-                    style={{ width: `${q.feasibility * 100}%` }}
+                    style={{ width: `${q.feasibility * 10}%` }}
                   />
                 </div>
-                <span>{Math.round(q.feasibility * 100)}%</span>
+                <span>{q.feasibility}/10</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-medium">Score</span>
                 <span className="font-medium">
-                  {Math.round(q.overallScore * 100)}%
+                  {q.overallScore.toFixed(1)}/10
                 </span>
               </div>
             </div>

@@ -126,7 +126,8 @@ export function findStructuralGaps(
     }
   }
 
-  return gaps;
+  // Return only the top 20 most significant structural gaps
+  return gaps.sort((a, b) => b.significance - a.significance).slice(0, 20);
 }
 
 /**
@@ -164,7 +165,8 @@ export function findDensityGaps(topics: Topic[]): KnowledgeGap[] {
     }
   }
 
-  return gaps;
+  // Return only the top 20 most significant density gaps
+  return gaps.sort((a, b) => b.significance - a.significance).slice(0, 20);
 }
 
 /**

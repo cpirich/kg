@@ -13,6 +13,7 @@ interface UseGapsResult {
   questions: ResearchQuestion[];
   isLoading: boolean;
   isAnalyzing: boolean;
+  analysisStatus: string | null;
   error: string | null;
   runGapAnalysis: () => Promise<void>;
 }
@@ -24,6 +25,7 @@ interface UseGapsResult {
  */
 export function useGaps(): UseGapsResult {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisStatus, setAnalysisStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const gaps = useLiveQuery(() => db.knowledgeGaps.toArray(), []);
@@ -36,6 +38,7 @@ export function useGaps(): UseGapsResult {
   const runGapAnalysis = useCallback(async () => {
     if (isAnalyzing) return;
     setIsAnalyzing(true);
+    setAnalysisStatus("Loading data...");
     setError(null);
 
     try {
@@ -53,6 +56,7 @@ export function useGaps(): UseGapsResult {
       }
 
       // Run gap analysis
+      setAnalysisStatus("Detecting knowledge gaps...");
       const detectedGaps = await analyzeGaps(
         topics,
         relationships,
@@ -70,32 +74,52 @@ export function useGaps(): UseGapsResult {
         await db.knowledgeGaps.bulkPut(detectedGaps);
       }
 
-      // Generate research questions for each gap
-      const allQuestions: ResearchQuestion[] = [];
-      for (const gap of detectedGaps) {
-        // Gather surrounding claims (claims that share topics with this gap)
-        const surroundingClaims = claims.filter((claim) =>
-          claim.topicIds.some((topicId) => gap.topicIds.includes(topicId)),
-        );
+      // Generate research questions for each gap with bounded concurrency
+      setAnalysisStatus(
+        `Generating questions for ${detectedGaps.length} gaps...`,
+      );
+      const CONCURRENCY_LIMIT = 3;
+      let gapIndex = 0;
+      let completedGaps = 0;
 
-        const gapTopics = topics.filter((t) => gap.topicIds.includes(t.id));
-        const generated = await generateQuestions(
-          gap,
-          surroundingClaims,
-          gapTopics,
-          client,
-          model,
-        );
-        allQuestions.push(...generated);
-      }
+      const processNextGap = async (): Promise<void> => {
+        while (gapIndex < detectedGaps.length) {
+          const currentIndex = gapIndex++;
+          const gap = detectedGaps[currentIndex];
 
-      // Store questions in DB
-      if (allQuestions.length > 0) {
-        await db.researchQuestions.bulkPut(allQuestions);
-      }
+          const surroundingClaims = claims.filter((claim) =>
+            claim.topicIds.some((topicId) => gap.topicIds.includes(topicId)),
+          );
+
+          const gapTopics = topics.filter((t) => gap.topicIds.includes(t.id));
+          const generated = await generateQuestions(
+            gap,
+            surroundingClaims,
+            gapTopics,
+            client,
+            model,
+          );
+
+          // Store questions progressively so UI updates via useLiveQuery
+          if (generated.length > 0) {
+            await db.researchQuestions.bulkPut(generated);
+          }
+          completedGaps++;
+          setAnalysisStatus(
+            `Generated questions for ${completedGaps}/${detectedGaps.length} gaps...`,
+          );
+        }
+      };
+
+      const workers = Array.from(
+        { length: Math.min(CONCURRENCY_LIMIT, detectedGaps.length) },
+        () => processNextGap(),
+      );
+      await Promise.all(workers);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to analyze gaps");
     } finally {
+      setAnalysisStatus(null);
       setIsAnalyzing(false);
     }
   }, [isAnalyzing]);
@@ -105,6 +129,7 @@ export function useGaps(): UseGapsResult {
     questions: questions ?? [],
     isLoading: gaps === undefined || questions === undefined,
     isAnalyzing,
+    analysisStatus,
     error,
     runGapAnalysis,
   };

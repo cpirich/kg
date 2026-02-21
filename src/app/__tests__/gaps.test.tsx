@@ -9,6 +9,10 @@ vi.mock("@/hooks/use-gaps", () => ({
   useGaps: () => mockUseGaps(),
 }));
 
+vi.mock("dexie-react-hooks", () => ({
+  useLiveQuery: () => [],
+}));
+
 // Dynamic import of GapsPage after mock is set up
 const { default: GapsPage } = await import("@/app/gaps/page");
 
@@ -19,6 +23,7 @@ beforeEach(() => {
     questions: [],
     isLoading: false,
     isAnalyzing: false,
+    analysisStatus: null,
     error: null,
     runGapAnalysis: mockRunAnalysis,
   });
@@ -56,6 +61,7 @@ describe("GapsPage", () => {
       questions: [],
       isLoading: false,
       isAnalyzing: false,
+      analysisStatus: null,
       error: null,
       runGapAnalysis: mockRunAnalysis,
     });
@@ -85,6 +91,7 @@ describe("GapsPage", () => {
       ],
       isLoading: false,
       isAnalyzing: false,
+      analysisStatus: null,
       error: null,
       runGapAnalysis: mockRunAnalysis,
     });
@@ -105,6 +112,7 @@ describe("GapsPage", () => {
       questions: [],
       isLoading: false,
       isAnalyzing: true,
+      analysisStatus: null,
       error: null,
       runGapAnalysis: mockRunAnalysis,
     });
@@ -122,6 +130,7 @@ describe("GapsPage", () => {
       questions: [],
       isLoading: false,
       isAnalyzing: true,
+      analysisStatus: null,
       error: null,
       runGapAnalysis: mockRunAnalysis,
     });
@@ -136,6 +145,7 @@ describe("GapsPage", () => {
       questions: [],
       isLoading: false,
       isAnalyzing: false,
+      analysisStatus: null,
       error: "No topics found. Ingest some documents first.",
       runGapAnalysis: mockRunAnalysis,
     });
@@ -150,5 +160,70 @@ describe("GapsPage", () => {
     render(<GapsPage />);
     fireEvent.click(screen.getByRole("button", { name: "Run Analysis" }));
     expect(mockRunAnalysis).toHaveBeenCalledOnce();
+  });
+
+  it("shows analysis status message when analyzing", () => {
+    mockUseGaps.mockReturnValue({
+      gaps: [],
+      questions: [],
+      isLoading: false,
+      isAnalyzing: true,
+      analysisStatus: "Generated questions for 5/20 gaps...",
+      error: null,
+      runGapAnalysis: mockRunAnalysis,
+    });
+
+    render(<GapsPage />);
+    expect(
+      screen.getByText("Generated questions for 5/20 gaps..."),
+    ).toBeInTheDocument();
+  });
+
+  it("does not show status message when not analyzing", () => {
+    mockUseGaps.mockReturnValue({
+      gaps: [],
+      questions: [],
+      isLoading: false,
+      isAnalyzing: false,
+      analysisStatus: null,
+      error: null,
+      runGapAnalysis: mockRunAnalysis,
+    });
+
+    render(<GapsPage />);
+    expect(
+      screen.queryByText(/Generated questions/),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders question scores in /10 format", async () => {
+    mockUseGaps.mockReturnValue({
+      gaps: [],
+      questions: [
+        {
+          id: "q1",
+          gapId: "gap1",
+          question: "Test question?",
+          rationale: "Test rationale",
+          impact: 9,
+          feasibility: 7,
+          overallScore: 8.2,
+          createdAt: Date.now(),
+        },
+      ],
+      isLoading: false,
+      isAnalyzing: false,
+      analysisStatus: null,
+      error: null,
+      runGapAnalysis: mockRunAnalysis,
+    });
+
+    render(<GapsPage />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("tab", { name: "Research Questions" }));
+
+    expect(screen.getByText("9/10")).toBeInTheDocument();
+    expect(screen.getByText("7/10")).toBeInTheDocument();
+    expect(screen.getByText("8.2/10")).toBeInTheDocument();
   });
 });

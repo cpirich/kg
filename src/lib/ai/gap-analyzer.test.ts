@@ -197,6 +197,48 @@ describe("findStructuralGaps", () => {
     const gaps = findStructuralGaps([tA, tB, tC], rels);
     expect(gaps).toHaveLength(0);
   });
+
+  it("caps structural gaps at 20 most significant", () => {
+    // Create many high-degree topics that are not connected to each other
+    // but all connected to low-degree "bridge" topics
+    const highDegreeTopics: Topic[] = [];
+    const lowDegreeTopics: Topic[] = [];
+    const rels: TopicRelationship[] = [];
+
+    // 10 high-degree topics
+    for (let i = 0; i < 10; i++) {
+      highDegreeTopics.push(makeTopic(`High${i}`, 5));
+    }
+    // 5 low-degree bridge topics
+    for (let i = 0; i < 5; i++) {
+      lowDegreeTopics.push(makeTopic(`Low${i}`, 1));
+    }
+
+    // Connect each high-degree topic to all bridge topics (degree = 5 each)
+    // Bridge topics get degree = 10 each, but that's fine
+    // Actually we need high-degree > median, so let's connect high-degree
+    // topics to bridges to get their degree up
+    for (const ht of highDegreeTopics) {
+      for (const lt of lowDegreeTopics) {
+        rels.push(makeRelationship(ht.id, lt.id));
+      }
+    }
+
+    const allTopics = [...highDegreeTopics, ...lowDegreeTopics];
+    const gaps = findStructuralGaps(allTopics, rels);
+
+    // 10 high-degree topics not connected to each other = C(10,2) = 45 pairs
+    // But should be capped at 20
+    expect(gaps.length).toBeLessThanOrEqual(20);
+    expect(gaps.length).toBeGreaterThan(0);
+
+    // Should be sorted by significance (descending)
+    for (let i = 1; i < gaps.length; i++) {
+      expect(gaps[i - 1].significance).toBeGreaterThanOrEqual(
+        gaps[i].significance,
+      );
+    }
+  });
 });
 
 describe("findDensityGaps", () => {
@@ -243,6 +285,26 @@ describe("findDensityGaps", () => {
 
     const gaps = findDensityGaps(topics);
     expect(gaps).toHaveLength(0);
+  });
+
+  it("caps density gaps at 20 most significant", () => {
+    // Create 1 high-count topic and 30 zero-count topics
+    // avg = 100/31 ≈ 3.23, threshold ≈ 1.61
+    // All zero-count topics qualify → 30 gaps, but capped at 20
+    const topics: Topic[] = [makeTopic("High", 100)];
+    for (let i = 0; i < 30; i++) {
+      topics.push(makeTopic(`Empty${i}`, 0));
+    }
+
+    const gaps = findDensityGaps(topics);
+    expect(gaps).toHaveLength(20);
+
+    // Should be sorted by significance (descending)
+    for (let i = 1; i < gaps.length; i++) {
+      expect(gaps[i - 1].significance).toBeGreaterThanOrEqual(
+        gaps[i].significance,
+      );
+    }
   });
 });
 

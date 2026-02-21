@@ -14,9 +14,10 @@ interface Gap {
 
 interface GapListProps {
   gaps: Gap[];
+  topicNames?: Record<string, string>;
 }
 
-export function GapList({ gaps }: GapListProps) {
+export function GapList({ gaps, topicNames = {} }: GapListProps) {
   if (gaps.length === 0) {
     return (
       <div className="flex h-48 flex-col items-center justify-center gap-3 rounded-lg border border-dashed text-muted-foreground">
@@ -55,7 +56,7 @@ export function GapList({ gaps }: GapListProps) {
               <div className="flex flex-wrap gap-1">
                 {gap.topicIds.map((topicId) => (
                   <Badge key={topicId} variant="outline" className="text-xs">
-                    {topicId}
+                    {topicNames[topicId] || topicId}
                   </Badge>
                 ))}
               </div>
