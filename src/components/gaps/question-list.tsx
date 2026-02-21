@@ -47,7 +47,7 @@ export function QuestionList({ questions }: QuestionListProps) {
                 <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
                   <div
                     className="h-full rounded-full bg-primary"
-                    style={{ width: `${q.impact * 10}%` }}
+                    style={{ width: `${Math.min(q.impact * 10, 100)}%` }}
                   />
                 </div>
                 <span>{q.impact}/10</span>
@@ -57,7 +57,7 @@ export function QuestionList({ questions }: QuestionListProps) {
                 <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
                   <div
                     className="h-full rounded-full bg-primary"
-                    style={{ width: `${q.feasibility * 10}%` }}
+                    style={{ width: `${Math.min(q.feasibility * 10, 100)}%` }}
                   />
                 </div>
                 <span>{q.feasibility}/10</span>

@@ -36,7 +36,7 @@ describe("ContradictionsPage", () => {
     render(<ContradictionsPage />);
     expect(
       screen.getByText(
-        "No contradictions detected yet. Upload papers to begin analysis.",
+        "Run detection above to identify contradictions across your papers.",
       ),
     ).toBeInTheDocument();
   });

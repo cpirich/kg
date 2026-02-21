@@ -208,6 +208,21 @@ describe("generateContradictionCandidates", () => {
     const candidates = generateContradictionCandidates([]);
     expect(candidates).toHaveLength(0);
   });
+
+  it("caps candidates at MAX_CANDIDATES (50)", () => {
+    // 11 claims from different docs, same type and shared topic → C(11,2) = 55 pairs
+    const claims: Claim[] = Array.from({ length: 11 }, (_, i) =>
+      makeClaim({
+        id: `claim_${i}`,
+        documentId: `doc_${i}`,
+        type: "finding",
+        topicIds: ["shared_topic"],
+      }),
+    );
+
+    const candidates = generateContradictionCandidates(claims);
+    expect(candidates.length).toBe(50);
+  });
 });
 
 describe("verifyContradiction", () => {

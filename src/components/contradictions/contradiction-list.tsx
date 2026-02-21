@@ -58,7 +58,7 @@ export function ContradictionList({
       <div className="flex h-48 flex-col items-center justify-center gap-3 rounded-lg border border-dashed text-muted-foreground">
         <AlertTriangle className="size-10 opacity-50" />
         <p className="text-sm">
-          No contradictions detected yet. Upload papers to begin analysis.
+          Run detection above to identify contradictions across your papers.
         </p>
       </div>
     );
@@ -73,16 +73,30 @@ export function ContradictionList({
     <div className="space-y-3">
       {sorted.map((contradiction) => {
         const config = severityConfig[contradiction.severity];
+        const isConfirmed = contradiction.status === "confirmed";
+        const isDismissed = contradiction.status === "dismissed";
         return (
           <Card
             key={contradiction.id}
-            className={`border-l-4 ${config.borderColor} ${selectedId === contradiction.id ? "ring-2 ring-primary" : ""} ${onSelect ? "cursor-pointer" : ""}`}
+            className={`border-l-4 ${config.borderColor} ${selectedId === contradiction.id ? "ring-2 ring-primary" : ""} ${onSelect ? "cursor-pointer" : ""} ${isDismissed ? "opacity-60" : ""}`}
             onClick={() => onSelect?.(contradiction.id)}
           >
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm">Contradiction</CardTitle>
                 <div className="flex items-center gap-2">
+                  {isConfirmed && (
+                    <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                      <Check className="mr-1 size-3" />
+                      Confirmed
+                    </Badge>
+                  )}
+                  {isDismissed && (
+                    <Badge variant="secondary">
+                      <X className="mr-1 size-3" />
+                      Dismissed
+                    </Badge>
+                  )}
                   <Badge variant="outline" className={config.badgeClassName}>
                     {config.label}
                   </Badge>
@@ -99,6 +113,7 @@ export function ContradictionList({
               <Button
                 size="sm"
                 variant="outline"
+                disabled={isConfirmed}
                 onClick={(e) => {
                   e.stopPropagation();
                   onStatusChange?.(contradiction.id, "confirmed");
@@ -110,6 +125,7 @@ export function ContradictionList({
               <Button
                 size="sm"
                 variant="ghost"
+                disabled={isDismissed}
                 onClick={(e) => {
                   e.stopPropagation();
                   onStatusChange?.(contradiction.id, "dismissed");
