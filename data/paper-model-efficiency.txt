@@ -1,0 +1,44 @@
+Training Efficiency and Model Compression for Large Language Models
+
+Authors: Rivera, C., Andersen, K., & Gupta, P.
+Transactions on Machine Learning Research (TMLR), 2025
+
+Abstract
+
+The rapid growth in language model size has created an urgent need for efficient training methods and effective model compression techniques. This paper surveys and benchmarks leading approaches to training efficiency — including mixed-precision training, gradient checkpointing, and distributed training strategies — alongside post-training compression methods such as knowledge distillation, quantization, and structured pruning. Our experiments on BERT, GPT-class, and T5 models show that 4-bit quantization preserves 97.3% of full-precision accuracy while reducing model size by 8x, making deployment feasible on consumer hardware. We further demonstrate that knowledge distillation from large teacher models to compact student models is the most effective compression strategy, achieving 94.1% of teacher performance with only 12% of parameters. Surprisingly, we find that larger models are more amenable to compression than smaller ones, suggesting that over-parameterization during training serves as an implicit regularizer that aids later compression.
+
+1. Introduction
+
+The computational cost of training and deploying large language models has become a significant barrier to widespread adoption. Training a single large transformer model can cost millions of dollars in compute and produce substantial carbon emissions. This work addresses the critical question of how to make language model training and deployment more efficient without sacrificing performance.
+
+We evaluate training efficiency techniques across three model families: BERT (encoder-only), GPT-class (decoder-only), and T5 (encoder-decoder). All models use the transformer architecture, which has become the de facto standard for language modeling.
+
+2. Key Findings
+
+2.1 Mixed-Precision Training
+
+Training transformers with mixed FP16/FP32 precision reduces training time by 38-45% across all evaluated model sizes with negligible impact on final accuracy (less than 0.2% degradation). This technique should be considered mandatory for any large-scale training run. We observe that mixed-precision training is more effective for larger models, with models exceeding 1 billion parameters showing the greatest speedup.
+
+2.2 Quantization Results
+
+Post-training quantization to 4-bit integer representation preserves 97.3% of full-precision model accuracy on standard NLP benchmarks. 8-bit quantization preserves 99.1% of accuracy. These results hold across model sizes from 125M to 175B parameters. Quantization is particularly effective for inference deployment, reducing memory requirements by 4-8x and improving inference throughput by 2.5-3.5x.
+
+2.3 Knowledge Distillation
+
+Distilling a 175B-parameter teacher model into a 7B-parameter student achieves 94.1% of teacher performance on aggregate benchmarks. The distilled student outperforms a 7B model trained from scratch by 8.3%, confirming that knowledge distillation transfers capabilities that would otherwise require significantly more compute to learn directly. We find that intermediate layer matching is more effective than output-only distillation.
+
+2.4 Structured Pruning
+
+Removing 40% of attention heads through structured pruning reduces inference latency by 35% while preserving 95.8% of accuracy. Interestingly, pruning analysis reveals high redundancy in transformer attention heads — on average, 30% of heads can be removed with less than 1% accuracy impact. This finding has implications for understanding how attention mechanisms encode information in language models.
+
+2.5 Training Data Efficiency
+
+We investigate the relationship between training data volume and model performance across different model sizes. Contrary to naive scaling predictions, we find diminishing returns beyond approximately 1 trillion training tokens for models under 10B parameters. Smaller models reach their effective capacity ceiling earlier, suggesting that computational budgets are better allocated to architecture improvements rather than data scaling for these model sizes.
+
+2.6 Distributed Training Strategies
+
+Comparing data parallelism, tensor parallelism, and pipeline parallelism for large model training, we find that hybrid approaches combining data and tensor parallelism achieve the best scaling efficiency. Our experiments show near-linear scaling up to 256 GPUs with hybrid parallelism, compared to significant degradation beyond 64 GPUs with data parallelism alone.
+
+3. Implications
+
+Our results demonstrate that the computational barrier to large language model deployment is solvable with current compression techniques. The combination of 4-bit quantization and knowledge distillation can reduce deployment costs by over 90% while retaining the vast majority of model capability. We recommend that all production deployments evaluate these techniques before investing in additional hardware. Further research into the interaction between training efficiency methods and model interpretability is needed, as compression may affect which features models rely upon for predictions.
