@@ -117,18 +117,18 @@ export default function DashboardPage() {
                     },
                   } satisfies ChartConfig
                 }
-                className="h-[200px] w-full"
+                className="h-[300px] w-full"
               >
                 <BarChart
                   data={topics}
                   layout="vertical"
-                  margin={{ left: 0, right: 16 }}
+                  margin={{ left: 0, right: 16, top: 4, bottom: 4 }}
                 >
                   <XAxis type="number" hide />
                   <YAxis
                     type="category"
                     dataKey="label"
-                    width={120}
+                    width={130}
                     tickLine={false}
                     axisLine={false}
                     tick={{ fontSize: 12 }}
