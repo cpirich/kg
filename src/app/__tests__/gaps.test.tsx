@@ -191,9 +191,7 @@ describe("GapsPage", () => {
     });
 
     render(<GapsPage />);
-    expect(
-      screen.queryByText(/Generated questions/),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Generated questions/)).not.toBeInTheDocument();
   });
 
   it("renders question scores in /10 format", async () => {

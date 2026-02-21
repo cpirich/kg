@@ -11,8 +11,14 @@ import { Loader2 } from "lucide-react";
 import { useMemo } from "react";
 
 export default function GapsPage() {
-  const { gaps, questions, isAnalyzing, analysisStatus, error, runGapAnalysis } =
-    useGaps();
+  const {
+    gaps,
+    questions,
+    isAnalyzing,
+    analysisStatus,
+    error,
+    runGapAnalysis,
+  } = useGaps();
 
   const topics = useLiveQuery(() => db.topics.toArray(), []);
   const topicNames = useMemo(() => {
