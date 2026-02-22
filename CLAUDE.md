@@ -36,6 +36,7 @@ npm run test       # Vitest
 
 ## Code Conventions
 
+- **Pre-commit checks**: Always run `npm run test` and `npm run typecheck` before committing and pushing. All tests must pass.
 - **Formatting**: Biome.js — 2-space indent, double quotes, organize imports. Run `npm run check` before committing.
 - **Types**: All domain types live in `src/types/domain.ts` — this is the canonical contract. Use branded ID types (`DocumentId`, `ClaimId`, `TopicId`, etc.) everywhere.
 - **Components**: shadcn/ui primitives in `src/components/ui/`. Feature components organized by page: `layout/`, `dashboard/`, `ingest/`, `map/`, `contradictions/`, `gaps/`.

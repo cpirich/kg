@@ -155,10 +155,10 @@ describe("DashboardPage", () => {
     setQueryReturns({ topics: [], recentDocuments: [] });
     render(<DashboardPage />);
 
-    expect(
-      screen.getByText(
-        "No documents uploaded yet. Go to Upload Papers to get started.",
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/No documents uploaded yet/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Upload papers" })).toHaveAttribute(
+      "href",
+      "/ingest",
+    );
   });
 });

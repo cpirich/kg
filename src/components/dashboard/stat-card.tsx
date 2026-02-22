@@ -40,7 +40,11 @@ export function StatCard({
   );
 
   if (href) {
-    return <Link href={href}>{card}</Link>;
+    return (
+      <Link href={href} className="block">
+        {card}
+      </Link>
+    );
   }
 
   return card;
