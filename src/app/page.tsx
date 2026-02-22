@@ -2,6 +2,7 @@
 
 import { useLiveQuery } from "dexie-react-hooks";
 import { AlertTriangle, FileText, Lightbulb, Search } from "lucide-react";
+import Link from "next/link";
 
 import { Bar, BarChart, XAxis, YAxis } from "recharts";
 
@@ -46,31 +47,37 @@ export default function DashboardPage() {
           value={documentCount ?? 0}
           description="Papers uploaded"
           icon={FileText}
+          href="/ingest"
         />
         <StatCard
           title="Claims"
           value={claimCount ?? 0}
           description="Extracted from papers"
           icon={Lightbulb}
+          href="/map"
         />
         <StatCard
           title="Contradictions"
           value={contradictionCount ?? 0}
           description="Detected conflicts"
           icon={AlertTriangle}
+          href="/contradictions"
         />
         <StatCard
           title="Knowledge Gaps"
           value={gapCount ?? 0}
           description="Areas to explore"
           icon={Search}
+          href="/gaps"
         />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Recent Documents</CardTitle>
+            <Link href="/ingest" className="hover:underline">
+              <CardTitle>Recent Documents</CardTitle>
+            </Link>
           </CardHeader>
           <CardContent>
             {recentDocuments && recentDocuments.length > 0 ? (
@@ -95,7 +102,11 @@ export default function DashboardPage() {
             ) : (
               <div className="flex h-32 items-center justify-center text-muted-foreground">
                 <p className="text-sm">
-                  No documents uploaded yet. Go to Upload Papers to get started.
+                  No documents uploaded yet.{" "}
+                  <Link href="/ingest" className="underline hover:text-foreground">
+                    Upload papers
+                  </Link>{" "}
+                  to get started.
                 </p>
               </div>
             )}
@@ -104,7 +115,9 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Topic Distribution</CardTitle>
+            <Link href="/map" className="hover:underline">
+              <CardTitle>Topic Distribution</CardTitle>
+            </Link>
           </CardHeader>
           <CardContent>
             {topics && topics.length > 0 ? (
