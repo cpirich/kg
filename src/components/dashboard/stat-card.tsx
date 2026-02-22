@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import Link from "next/link";
 
 import {
   Card,
@@ -13,6 +14,7 @@ interface StatCardProps {
   value: string | number;
   description?: string;
   icon: LucideIcon;
+  href?: string;
 }
 
 export function StatCard({
@@ -20,9 +22,10 @@ export function StatCard({
   value,
   description,
   icon: Icon,
+  href,
 }: StatCardProps) {
-  return (
-    <Card>
+  const card = (
+    <Card className={href ? "transition-colors hover:border-primary/50" : ""}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         <Icon className="size-4 text-muted-foreground" />
@@ -35,4 +38,14 @@ export function StatCard({
       </CardContent>
     </Card>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="block">
+        {card}
+      </Link>
+    );
+  }
+
+  return card;
 }
