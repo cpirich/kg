@@ -103,7 +103,10 @@ export default function DashboardPage() {
               <div className="flex h-32 items-center justify-center text-muted-foreground">
                 <p className="text-sm">
                   No documents uploaded yet.{" "}
-                  <Link href="/ingest" className="underline hover:text-foreground">
+                  <Link
+                    href="/ingest"
+                    className="underline hover:text-foreground"
+                  >
                     Upload papers
                   </Link>{" "}
                   to get started.

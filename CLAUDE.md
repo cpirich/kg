@@ -75,6 +75,7 @@ src/
 - **Sensitive data in exports**: Always redact secrets (API keys, tokens) from data export functions.
 - **Topic normalization**: Naive singularization (strip trailing 's') breaks on many English words. Use pattern-based exceptions (words ending in "ss", "us", "is", "sis", "ous") and an explicit exception list.
 - **DRY in AI modules**: Shared parsing/utility functions should live in `src/lib/ai/utils.ts`, not be duplicated across each AI file.
+- **Linter-modified files**: The biome PostToolUse hook auto-formats files after edits. Always run `git status` after committing to check for unstaged changes left by the linter, and stage/commit them before switching branches or pushing.
 
 ## Implementation Plan
 
